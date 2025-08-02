@@ -17,6 +17,13 @@ namespace AEMDataSync.Models
         [StringLength(50)]
         public string Code { get; set; } = string.Empty;
 
+        // Updated to accommodate larger coordinate values
+        [Column(TypeName = "decimal(18,10)")]
+        public decimal? Latitude { get; set; }
+
+        [Column(TypeName = "decimal(18,10)")]
+        public decimal? Longitude { get; set; }
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
@@ -38,6 +45,13 @@ namespace AEMDataSync.Models
 
         [ForeignKey("Platform")]
         public int PlatformId { get; set; }
+
+        // Updated to accommodate larger coordinate values
+        [Column(TypeName = "decimal(18,10)")]
+        public decimal? Latitude { get; set; }
+
+        [Column(TypeName = "decimal(18,10)")]
+        public decimal? Longitude { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

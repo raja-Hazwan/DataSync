@@ -1,20 +1,27 @@
+WITH LastWellPerPlatform AS (
+    SELECT 
+        PlatformId,
+        MAX(UpdatedAt) AS MaxUpdatedAt
+    FROM 
+        Wells 
+    GROUP BY 
+        PlatformId
+)
 SELECT 
     p.Name AS PlatformName,
     w.Id,
     w.PlatformId,
-    w.Name AS WellName,
-    w.Code AS WellCode,
-    w.CreatedAt AS [Created/At],
-    w.UpdatedAt AS [Updated/At]
+    w.Name AS UniqueName,
+    w.Latitude,
+    w.Longitude,
+    w.CreatedAt,
+    w.UpdatedAt
 FROM 
-    Wells w
+    Platforms p
 INNER JOIN 
-    Platforms p ON w.PlatformId = p.Id
-WHERE 
-    w.UpdatedAt = (
-        SELECT MAX(w2.UpdatedAt)
-        FROM Wells w2
-        WHERE w2.PlatformId = w.PlatformId
-    )
+    Wells w ON p.Id = w.PlatformId
+INNER JOIN 
+    LastWellPerPlatform lwp ON w.PlatformId = lwp.PlatformId 
+    AND w.UpdatedAt = lwp.MaxUpdatedAt
 ORDER BY 
-    p.Id;
+    w.Id;

@@ -59,7 +59,7 @@ namespace AEMDataSync
             // Use "username" field as required by the API
             var loginRequest = new
             {
-                username = apiSettings["Username"], 
+                username = apiSettings["Username"],
                 password = apiSettings["Password"]
             };
 
@@ -223,7 +223,13 @@ namespace AEMDataSync
                             // Update existing platform
                             if (!string.IsNullOrEmpty(platformData.UniqueName))
                                 existingPlatform.Name = platformData.UniqueName;
-                            existingPlatform.Code = platformData.UniqueName ?? ""; 
+                            existingPlatform.Code = platformData.UniqueName ?? "";
+
+                            // Update longitude and latitude
+                            if (platformData.Latitude.HasValue)
+                                existingPlatform.Latitude = platformData.Latitude.Value;
+                            if (platformData.Longitude.HasValue)
+                                existingPlatform.Longitude = platformData.Longitude.Value;
 
                             // Use the appropriate date field based on source
                             if (platformData.UpdatedAt.HasValue)
@@ -233,7 +239,7 @@ namespace AEMDataSync
                             else
                                 existingPlatform.UpdatedAt = DateTime.UtcNow;
 
-                            Console.WriteLine($"Updated platform: {existingPlatform.Name} (ID: {existingPlatform.Id})");
+                            Console.WriteLine($"Updated platform: {existingPlatform.Name} (ID: {existingPlatform.Id}) - Lat: {existingPlatform.Latitude}, Lon: {existingPlatform.Longitude}");
                         }
                         else
                         {
@@ -243,11 +249,13 @@ namespace AEMDataSync
                                 Id = platformData.Id.Value,
                                 Name = platformData.UniqueName ?? "",
                                 Code = platformData.UniqueName ?? "", // Using uniqueName as code
+                                Latitude = platformData.Latitude,
+                                Longitude = platformData.Longitude,
                                 CreatedAt = platformData.CreatedAt ?? DateTime.UtcNow,
                                 UpdatedAt = platformData.UpdatedAt ?? platformData.LastUpdate ?? DateTime.UtcNow
                             };
                             context.Platforms.Add(platform);
-                            Console.WriteLine($"Added new platform: {platform.Name} (ID: {platform.Id})");
+                            Console.WriteLine($"Added new platform: {platform.Name} (ID: {platform.Id}) - Lat: {platform.Latitude}, Lon: {platform.Longitude}");
                         }
                     }
 
@@ -270,6 +278,12 @@ namespace AEMDataSync
                                     if (wellData.PlatformId.HasValue)
                                         existingWell.PlatformId = wellData.PlatformId.Value;
 
+                                    // Update longitude and latitude
+                                    if (wellData.Latitude.HasValue)
+                                        existingWell.Latitude = wellData.Latitude.Value;
+                                    if (wellData.Longitude.HasValue)
+                                        existingWell.Longitude = wellData.Longitude.Value;
+
                                     // Use the appropriate date field
                                     if (wellData.UpdatedAt.HasValue)
                                         existingWell.UpdatedAt = wellData.UpdatedAt.Value;
@@ -278,7 +292,7 @@ namespace AEMDataSync
                                     else
                                         existingWell.UpdatedAt = DateTime.UtcNow;
 
-                                    Console.WriteLine($"Updated well: {existingWell.Name} (ID: {existingWell.Id})");
+                                    Console.WriteLine($"Updated well: {existingWell.Name} (ID: {existingWell.Id}) - Lat: {existingWell.Latitude}, Lon: {existingWell.Longitude}");
                                 }
                                 else
                                 {
@@ -289,11 +303,13 @@ namespace AEMDataSync
                                         Name = wellData.UniqueName ?? "",
                                         Code = wellData.UniqueName ?? "", // Using uniqueName as code
                                         PlatformId = wellData.PlatformId ?? platformData.Id ?? 0,
+                                        Latitude = wellData.Latitude,
+                                        Longitude = wellData.Longitude,
                                         CreatedAt = wellData.CreatedAt ?? DateTime.UtcNow,
                                         UpdatedAt = wellData.UpdatedAt ?? wellData.LastUpdate ?? DateTime.UtcNow
                                     };
                                     context.Wells.Add(well);
-                                    Console.WriteLine($"Added new well: {well.Name} (ID: {well.Id})");
+                                    Console.WriteLine($"Added new well: {well.Name} (ID: {well.Id}) - Lat: {well.Latitude}, Lon: {well.Longitude}");
                                 }
                             }
                         }
@@ -310,8 +326,20 @@ namespace AEMDataSync
                 }
             }
 
-            var savedChanges = await context.SaveChangesAsync();
-            Console.WriteLine($"✓ Saved {savedChanges} changes to database from {source}");
+            try
+            {
+                var savedChanges = await context.SaveChangesAsync();
+                Console.WriteLine($"✓ Saved {savedChanges} changes to database from {source}");
+            }
+            catch (Exception saveEx)
+            {
+                Console.WriteLine($"⚠ Error saving changes from {source}: {saveEx.Message}");
+                if (saveEx.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {saveEx.InnerException.Message}");
+                }
+                throw; // Re-throw to maintain the original error behavior
+            }
         }
     }
 }

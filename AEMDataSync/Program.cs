@@ -59,7 +59,7 @@ namespace AEMDataSync
             // Use "username" field as required by the API
             var loginRequest = new
             {
-                username = apiSettings["Username"],  // Changed from "email" to "username"
+                username = apiSettings["Username"], 
                 password = apiSettings["Password"]
             };
 
@@ -223,7 +223,7 @@ namespace AEMDataSync
                             // Update existing platform
                             if (!string.IsNullOrEmpty(platformData.UniqueName))
                                 existingPlatform.Name = platformData.UniqueName;
-                            existingPlatform.Code = platformData.UniqueName ?? ""; // Using uniqueName as code since no separate code field
+                            existingPlatform.Code = platformData.UniqueName ?? ""; 
 
                             // Use the appropriate date field based on source
                             if (platformData.UpdatedAt.HasValue)

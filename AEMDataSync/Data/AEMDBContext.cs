@@ -21,50 +21,50 @@ namespace AEMDataSync.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure Platform entity
+            // Configure Platform entity - matching database column order
             modelBuilder.Entity<Platform>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedNever(); // We set the ID from API
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.Code).HasMaxLength(50);
-
-                // Configure Latitude and Longitude with increased precision
-            
+                
+                // Column order: [Id], [UniqueName], [Latitude], [Longitude], [CreatedAt], [UpdatedAt]
+                entity.Property(e => e.UniqueName).IsRequired().HasMaxLength(255);
+                
                 entity.Property(e => e.Latitude)
-                    .HasColumnType("decimal(18,10)")
+                    .HasColumnType("decimal(19,10)")
                     .IsRequired(false);
 
                 entity.Property(e => e.Longitude)
-                    .HasColumnType("decimal(18,10)")
+                    .HasColumnType("decimal(19,10)")
                     .IsRequired(false);
 
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.HasIndex(e => e.Code).IsUnique(false);
+                
                 entity.ToTable("Platforms");
             });
 
-            // Configure Well entity
+            // Configure Well entity - matching database column order
             modelBuilder.Entity<Well>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedNever(); // We set the ID from API
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.Code).HasMaxLength(50);
-
+                
+                // Column order: [Id], [PlatformId], [UniqueName], [Latitude], [Longitude], [CreatedAt], [UpdatedAt]
+                entity.Property(e => e.PlatformId).IsRequired();
+                entity.Property(e => e.UniqueName).IsRequired().HasMaxLength(255);
                 
                 entity.Property(e => e.Latitude)
-                    .HasColumnType("decimal(18,10)")
+                    .HasColumnType("decimal(19,10)")
                     .IsRequired(false);
 
                 entity.Property(e => e.Longitude)
-                    .HasColumnType("decimal(18,10)")
+                    .HasColumnType("decimal(19,10)")
                     .IsRequired(false);
 
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
-                entity.HasIndex(e => e.Code).IsUnique(false);
+                
                 entity.ToTable("Wells");
 
                 // Configure foreign key relationship

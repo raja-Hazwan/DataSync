@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace AEMDataSync.Models
 {
-    // Database Models
+    // Database Models - Updated to match API response structure
     public class Platform
     {
         [Key]
@@ -12,16 +12,13 @@ namespace AEMDataSync.Models
 
         [Required]
         [StringLength(255)]
-        public string Name { get; set; } = string.Empty;
-
-        [StringLength(50)]
-        public string Code { get; set; } = string.Empty;
+        public string UniqueName { get; set; } = string.Empty;
 
         // Updated to accommodate larger coordinate values
-        [Column(TypeName = "decimal(18,10)")]
+        [Column(TypeName = "decimal(19,10)")]
         public decimal? Latitude { get; set; }
 
-        [Column(TypeName = "decimal(18,10)")]
+        [Column(TypeName = "decimal(19,10)")]
         public decimal? Longitude { get; set; }
 
         public DateTime CreatedAt { get; set; }
@@ -38,19 +35,16 @@ namespace AEMDataSync.Models
 
         [Required]
         [StringLength(255)]
-        public string Name { get; set; } = string.Empty;
-
-        [StringLength(50)]
-        public string Code { get; set; } = string.Empty;
+        public string UniqueName { get; set; } = string.Empty;
 
         [ForeignKey("Platform")]
         public int PlatformId { get; set; }
 
         // Updated to accommodate larger coordinate values
-        [Column(TypeName = "decimal(18,10)")]
+        [Column(TypeName = "decimal(19,10)")]
         public decimal? Latitude { get; set; }
 
-        [Column(TypeName = "decimal(18,10)")]
+        [Column(TypeName = "decimal(19,10)")]
         public decimal? Longitude { get; set; }
 
         public DateTime CreatedAt { get; set; }
@@ -106,6 +100,7 @@ namespace AEMDataSync.Models
         [JsonPropertyName("lastUpdate")] // For dummy data
         public DateTime? LastUpdate { get; set; }
 
+        // The API returns wells under "well" property (singular)
         [JsonPropertyName("well")]
         public List<WellData>? Wells { get; set; }
 

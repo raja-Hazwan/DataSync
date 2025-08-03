@@ -162,7 +162,7 @@ namespace AEMDataSync
                                 }
 
                                 // Try to deserialize the whole object as a single item if it has platform/well properties
-                                if (root.TryGetProperty("platformId", out _) || root.TryGetProperty("wellId", out _))
+                                if (root.TryGetProperty("id", out _) || root.TryGetProperty("uniqueName", out _))
                                 {
                                     var singleItem = JsonSerializer.Deserialize<PlatformWellData>(jsonContent, new JsonSerializerOptions
                                     {
@@ -213,7 +213,7 @@ namespace AEMDataSync
                 try
                 {
                     // Process Platform data
-                    if (platformData.Id.HasValue)
+                    if (platformData.Id.HasValue && platformData.Id.Value > 0)
                     {
                         var existingPlatform = await context.Platforms
                             .FirstOrDefaultAsync(p => p.Id == platformData.Id.Value);
@@ -222,8 +222,7 @@ namespace AEMDataSync
                         {
                             // Update existing platform
                             if (!string.IsNullOrEmpty(platformData.UniqueName))
-                                existingPlatform.Name = platformData.UniqueName;
-                            existingPlatform.Code = platformData.UniqueName ?? "";
+                                existingPlatform.UniqueName = platformData.UniqueName;
 
                             // Update longitude and latitude
                             if (platformData.Latitude.HasValue)
@@ -231,40 +230,41 @@ namespace AEMDataSync
                             if (platformData.Longitude.HasValue)
                                 existingPlatform.Longitude = platformData.Longitude.Value;
 
-                            // Use the appropriate date field based on source
-                            if (platformData.UpdatedAt.HasValue)
-                                existingPlatform.UpdatedAt = platformData.UpdatedAt.Value;
-                            else if (platformData.LastUpdate.HasValue)
-                                existingPlatform.UpdatedAt = platformData.LastUpdate.Value;
+                            // Update timestamps - check both UpdatedAt and LastUpdate
+                            var updateTime = platformData.UpdatedAt ?? platformData.LastUpdate;
+                            if (updateTime.HasValue && updateTime.Value != default(DateTime))
+                                existingPlatform.UpdatedAt = updateTime.Value;
                             else
                                 existingPlatform.UpdatedAt = DateTime.UtcNow;
 
-                            Console.WriteLine($"Updated platform: {existingPlatform.Name} (ID: {existingPlatform.Id}) - Lat: {existingPlatform.Latitude}, Lon: {existingPlatform.Longitude}");
+                            Console.WriteLine($"Updated platform: {existingPlatform.UniqueName} (ID: {existingPlatform.Id}) - Lat: {existingPlatform.Latitude}, Lon: {existingPlatform.Longitude}");
                         }
                         else
                         {
                             // Insert new platform
+                            var createTime = platformData.CreatedAt ?? DateTime.UtcNow;
+                            var updateTime = platformData.UpdatedAt ?? platformData.LastUpdate ?? DateTime.UtcNow;
+
                             var platform = new Platform
                             {
                                 Id = platformData.Id.Value,
-                                Name = platformData.UniqueName ?? "",
-                                Code = platformData.UniqueName ?? "", // Using uniqueName as code
+                                UniqueName = platformData.UniqueName ?? "",
                                 Latitude = platformData.Latitude,
                                 Longitude = platformData.Longitude,
-                                CreatedAt = platformData.CreatedAt ?? DateTime.UtcNow,
-                                UpdatedAt = platformData.UpdatedAt ?? platformData.LastUpdate ?? DateTime.UtcNow
+                                CreatedAt = createTime,
+                                UpdatedAt = updateTime
                             };
                             context.Platforms.Add(platform);
-                            Console.WriteLine($"Added new platform: {platform.Name} (ID: {platform.Id}) - Lat: {platform.Latitude}, Lon: {platform.Longitude}");
+                            Console.WriteLine($"Added new platform: {platform.UniqueName} (ID: {platform.Id}) - Lat: {platform.Latitude}, Lon: {platform.Longitude}");
                         }
                     }
 
-                    // Process Well data - the API returns wells as a nested array
+                    // Process Well data - the API returns wells as a nested collection
                     if (platformData.Wells != null && platformData.Wells.Count > 0)
                     {
                         foreach (var wellData in platformData.Wells)
                         {
-                            if (wellData.Id.HasValue)
+                            if (wellData.Id.HasValue && wellData.Id.Value > 0)
                             {
                                 var existingWell = await context.Wells
                                     .FirstOrDefaultAsync(w => w.Id == wellData.Id.Value);
@@ -273,9 +273,8 @@ namespace AEMDataSync
                                 {
                                     // Update existing well
                                     if (!string.IsNullOrEmpty(wellData.UniqueName))
-                                        existingWell.Name = wellData.UniqueName;
-                                    existingWell.Code = wellData.UniqueName ?? ""; // Using uniqueName as code
-                                    if (wellData.PlatformId.HasValue)
+                                        existingWell.UniqueName = wellData.UniqueName;
+                                    if (wellData.PlatformId.HasValue && wellData.PlatformId.Value > 0)
                                         existingWell.PlatformId = wellData.PlatformId.Value;
 
                                     // Update longitude and latitude
@@ -284,32 +283,41 @@ namespace AEMDataSync
                                     if (wellData.Longitude.HasValue)
                                         existingWell.Longitude = wellData.Longitude.Value;
 
-                                    // Use the appropriate date field
-                                    if (wellData.UpdatedAt.HasValue)
-                                        existingWell.UpdatedAt = wellData.UpdatedAt.Value;
-                                    else if (wellData.LastUpdate.HasValue)
-                                        existingWell.UpdatedAt = wellData.LastUpdate.Value;
+                                    // Update timestamps - check both UpdatedAt and LastUpdate
+                                    var updateTime = wellData.UpdatedAt ?? wellData.LastUpdate;
+                                    if (updateTime.HasValue && updateTime.Value != default(DateTime))
+                                        existingWell.UpdatedAt = updateTime.Value;
                                     else
                                         existingWell.UpdatedAt = DateTime.UtcNow;
 
-                                    Console.WriteLine($"Updated well: {existingWell.Name} (ID: {existingWell.Id}) - Lat: {existingWell.Latitude}, Lon: {existingWell.Longitude}");
+                                    Console.WriteLine($"Updated well: {existingWell.UniqueName} (ID: {existingWell.Id}) - Lat: {existingWell.Latitude}, Lon: {existingWell.Longitude}");
                                 }
                                 else
                                 {
                                     // Insert new well
-                                    var well = new Well
+                                    var createTime = wellData.CreatedAt ?? DateTime.UtcNow;
+                                    var updateTime = wellData.UpdatedAt ?? wellData.LastUpdate ?? DateTime.UtcNow;
+                                    var platformId = wellData.PlatformId ?? platformData.Id ?? 0;
+
+                                    if (platformId > 0)
                                     {
-                                        Id = wellData.Id.Value,
-                                        Name = wellData.UniqueName ?? "",
-                                        Code = wellData.UniqueName ?? "", // Using uniqueName as code
-                                        PlatformId = wellData.PlatformId ?? platformData.Id ?? 0,
-                                        Latitude = wellData.Latitude,
-                                        Longitude = wellData.Longitude,
-                                        CreatedAt = wellData.CreatedAt ?? DateTime.UtcNow,
-                                        UpdatedAt = wellData.UpdatedAt ?? wellData.LastUpdate ?? DateTime.UtcNow
-                                    };
-                                    context.Wells.Add(well);
-                                    Console.WriteLine($"Added new well: {well.Name} (ID: {well.Id}) - Lat: {well.Latitude}, Lon: {well.Longitude}");
+                                        var well = new Well
+                                        {
+                                            Id = wellData.Id.Value,
+                                            UniqueName = wellData.UniqueName ?? "",
+                                            PlatformId = platformId,
+                                            Latitude = wellData.Latitude,
+                                            Longitude = wellData.Longitude,
+                                            CreatedAt = createTime,
+                                            UpdatedAt = updateTime
+                                        };
+                                        context.Wells.Add(well);
+                                        Console.WriteLine($"Added new well: {well.UniqueName} (ID: {well.Id}) - Lat: {well.Latitude}, Lon: {well.Longitude}");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine($"⚠ Cannot add well {wellData.UniqueName} - missing platform ID");
+                                    }
                                 }
                             }
                         }

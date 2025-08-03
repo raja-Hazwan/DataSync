@@ -8,10 +8,10 @@ WITH LastWellPerPlatform AS (
         PlatformId
 )
 SELECT 
-    p.Name AS PlatformName,
+    p.UniqueName AS PlatformName,
     w.Id,
     w.PlatformId,
-    w.Name AS UniqueName,
+    w.UniqueName,
     w.Latitude,
     w.Longitude,
     w.CreatedAt,

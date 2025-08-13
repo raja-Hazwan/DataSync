@@ -11,7 +11,7 @@ namespace AEMDataSync.Data
         public DbSet<Platform> Platforms { get; set; }
         public DbSet<Well> Wells { get; set; }
 
-        // Constructor for migrations (parameterless)
+        // Constructor for migrations 
         public AEMDbContext()
         {
             _connectionString = string.Empty;
@@ -22,7 +22,7 @@ namespace AEMDataSync.Data
             _connectionString = connectionString;
         }
 
-        // Constructor for dependency injection (if you plan to use it later)
+        // Constructor for dependency injection for later use 
         public AEMDbContext(DbContextOptions<AEMDbContext> options) : base(options)
         {
             _connectionString = string.Empty;

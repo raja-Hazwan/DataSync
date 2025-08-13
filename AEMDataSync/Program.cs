@@ -28,9 +28,22 @@ namespace AEMDataSync
 
                 var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-                // Initialize database
+                // Initialize database with migrations
                 using var context = new AEMDbContext(connectionString!);
-                await context.Database.EnsureCreatedAsync();
+                
+                // Apply any pending migrations automatically
+                Console.WriteLine("Checking for pending migrations...");
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+                if (pendingMigrations.Any())
+                {
+                    Console.WriteLine($"Applying {pendingMigrations.Count()} pending migrations...");
+                    await context.Database.MigrateAsync();
+                    Console.WriteLine("✓ Migrations applied successfully");
+                }
+                else
+                {
+                    Console.WriteLine("✓ Database is up to date");
+                }
 
                 // Step 1: Login and get bearer token
                 Console.WriteLine("1. Authenticating...");

@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using AEMDataSync.Models;
+using System.IO;
 
 namespace AEMDataSync.Data
 {
@@ -9,14 +11,51 @@ namespace AEMDataSync.Data
         public DbSet<Platform> Platforms { get; set; }
         public DbSet<Well> Wells { get; set; }
 
+        // Constructor for migrations (parameterless)
+        public AEMDbContext()
+        {
+            _connectionString = string.Empty;
+        }
+
         public AEMDbContext(string connectionString)
         {
             _connectionString = connectionString;
         }
 
+        // Constructor for dependency injection (if you plan to use it later)
+        public AEMDbContext(DbContextOptions<AEMDbContext> options) : base(options)
+        {
+            _connectionString = string.Empty;
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(_connectionString);
+            if (!optionsBuilder.IsConfigured)
+            {
+                if (!string.IsNullOrEmpty(_connectionString))
+                {
+                    optionsBuilder.UseSqlServer(_connectionString);
+                }
+                else
+                {
+                    // Read connection string from appsettings.json for migrations
+                    var configuration = new ConfigurationBuilder()
+                        .SetBasePath(Directory.GetCurrentDirectory())
+                        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                        .Build();
+
+                    var connectionString = configuration.GetConnectionString("DefaultConnection");
+                    
+                    if (!string.IsNullOrEmpty(connectionString))
+                    {
+                        optionsBuilder.UseSqlServer(connectionString);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Connection string 'DefaultConnection' not found in appsettings.json");
+                    }
+                }
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

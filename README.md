@@ -17,6 +17,7 @@ AEMDataSync/
 │   └── Models.cs          # Data models and API response models
 ├── Data/
 │   └── AEMDbContext.cs    # Entity Framework DbContext
+├── Migrations/             # Entity Framework migrations
 ├── AEMDataSync.csproj     # Project file with package references
 ├── appsettings.json       # Configuration file
 └── SQLQuery.sql           # SQL query for Part 2 of assessment
@@ -57,7 +58,16 @@ Update the connection string in `appsettings.json` to match your SQL Server inst
 }
 ```
 
-### 5. Run the application:
+### 5. Create and apply database migrations:
+```bash
+# Create initial migration
+dotnet ef migrations add InitialCreate
+
+# Apply migrations to create database
+dotnet ef database update
+```
+
+### 6. Run the application:
 ```bash
 dotnet run
 ```
@@ -72,8 +82,8 @@ dotnet run
 - ✅ Updates existing records by ID or inserts new records
 - ✅ Handles nested well data within platform objects
 - ✅ Robust error handling for individual record processing
-- ✅ Uses Entity Framework Code First approach
-- ✅ Automatically creates database and tables
+- ✅ Uses Entity Framework Code First with migrations
+- ✅ Automatically applies database migrations on startup
 - ✅ Supports both `updatedAt` and `lastUpdate` timestamp fields for compatibility
 
 ### Part 2: SQL Query
@@ -160,10 +170,46 @@ The application uses two separate model types:
 <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
 <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7" />
 <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.7" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.7" />
 <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.7" />
 <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.7" />
 <PackageReference Include="System.Text.Json" Version="9.0.7" />
 ```
+
+## Database Migrations
+
+The application uses Entity Framework Code First migrations for database schema management:
+
+### Creating Migrations:
+```bash
+# Create a new migration
+dotnet ef migrations add MigrationName
+
+# List existing migrations
+dotnet ef migrations list
+
+# Remove last migration (if not applied)
+dotnet ef migrations remove
+```
+
+### Applying Migrations:
+```bash
+# Apply all pending migrations
+dotnet ef database update
+
+# Apply to specific migration
+dotnet ef database update MigrationName
+
+# Rollback to previous migration
+dotnet ef database update PreviousMigrationName
+```
+
+### Migration Features:
+- ✅ Automatic migration application on startup
+- ✅ Database creation if it doesn't exist
+- ✅ Schema versioning and change tracking
+- ✅ Rollback capabilities for development
+- ✅ Production-ready migration strategy
 
 ## Error Handling
 
@@ -173,20 +219,22 @@ The application includes robust error handling for:
 - Different API response structures between actual and dummy endpoints
 - Missing or malformed data properties
 - Database connection problems
+- Migration application failures
 - Individual record processing errors (continues with other records)
 - Missing platform IDs for wells
 - Null or invalid datetime values
 
 ## Data Processing Logic
 
-1. **Authentication:** Login with username/password, receive JWT token
-2. **API Response Parsing:** 
+1. **Database Initialization:** Apply pending migrations and ensure database exists
+2. **Authentication:** Login with username/password, receive JWT token
+3. **API Response Parsing:** 
    - Handles both array and object response formats
    - Supports multiple data wrapper property names (`data`, `result`, `items`)
    - Falls back to single item parsing if array parsing fails
-3. **Platform Processing:** Extract platform data from API response using `PlatformWellData` model
-4. **Well Processing:** Process nested well arrays for each platform using `WellData` model
-5. **Database Operations:** 
+4. **Platform Processing:** Extract platform data from API response using `PlatformWellData` model
+5. **Well Processing:** Process nested well arrays for each platform using `WellData` model
+6. **Database Operations:** 
    - Check if records exist by ID
    - Update existing records with new data
    - Insert new records if they don't exist
@@ -198,14 +246,17 @@ The application includes robust error handling for:
 ```
 AEM Energy Solutions - Data Sync Application
 ============================================
-1. Authenticating...
+1. Applying database migrations...
+✓ Database migrations applied successfully
+
+2. Authenticating...
 Attempting login to: http://test-demo.aemenersol.com/api/Account/Login
 Request body: {"username":"user@aemenersol.com","password":"Test@123"}
 Response status: OK
 ✓ Authentication successful
 ✓ Token received and set: eyJhbGciOiJIUzI1NiIs...
 
-2. Syncing actual platform and well data...
+3. Syncing actual platform and well data...
 API Response Status for GetPlatformWellActual: OK
 Raw JSON Response for GetPlatformWellActual: [{"id":11,...}]
 Response is a direct array
@@ -215,7 +266,7 @@ Updated well: Well11 (ID: 1) - Lat: 37.062570, Lon: 18.406885
 ✓ Saved 20 changes to database from GetPlatformWellActual
 ✓ GetPlatformWellActual data processed successfully
 
-3. Testing with dummy data...
+4. Testing with dummy data...
 API Response Status for GetPlatformWellDummy: OK
 Response is a direct array
 Found 10 items to process
@@ -231,7 +282,7 @@ Data synchronization completed successfully!
 **Breakdown:**
 - Initial project setup and API exploration: 1 hour
 - Authentication implementation and JWT handling: 1.5 hours
-- Entity Framework models and database setup: 1.5 hours
+- Entity Framework models and migrations setup: 2 hours
 - API response analysis and data mapping: 2 hours
 - Data synchronization logic implementation: 1.5 hours
 - Error handling and testing with both endpoints: 1 hour
@@ -243,6 +294,7 @@ Data synchronization completed successfully!
 - The API response structure was a direct array with nested wells, requiring careful data extraction
 - Separate models needed for API responses vs database entities
 - Different field names between API (`uniqueName`) and initial expectations
+- Code First migrations setup and configuration took additional time
 - Extensive testing was needed with both actual and dummy data endpoints
 - Robust error handling was implemented for production readiness
 
@@ -251,14 +303,32 @@ Data synchronization completed successfully!
 ### Common Issues:
 
 1. **Connection String:** Ensure your SQL Server instance name is correct
-2. **Database Permissions:** Make sure the application can create databases
-3. **API Access:** Verify internet connectivity to the test API
-4. **SSL Certificate:** The `TrustServerCertificate=true` setting handles SSL issues
-5. **JSON Parsing:** The application handles various response formats automatically
-6. **Missing Wells:** Some platforms may not have associated wells - this is handled gracefully
+2. **Database Permissions:** Make sure the application can create databases and apply migrations
+3. **Migration Errors:** Use `dotnet ef database drop` to reset and recreate the database if needed
+4. **API Access:** Verify internet connectivity to the test API
+5. **SSL Certificate:** The `TrustServerCertificate=true` setting handles SSL issues
+6. **JSON Parsing:** The application handles various response formats automatically
+7. **Missing Wells:** Some platforms may not have associated wells - this is handled gracefully
 
-### Database Creation:
-The application uses `EnsureCreatedAsync()` to automatically create the database and tables. No manual migrations are required.
+### Database Management:
+```bash
+# Reset database (development only)
+dotnet ef database drop
+dotnet ef database update
+
+# Check migration status
+dotnet ef migrations list
+
+# Generate SQL script for migrations
+dotnet ef migrations script
+```
+
+### Migration Best Practices:
+- Always create migrations before schema changes
+- Test migrations in development before production
+- Keep migration names descriptive
+- Review generated migration code before applying
+- Backup production databases before applying migrations
 
 ## SQL Query (Part 2)
 
@@ -266,8 +336,10 @@ See `SQLQuery.sql` for the complete query that returns the last updated well for
 
 ## Architecture Notes
 
+- **Code First Migrations:** Full migration support for schema versioning and deployment
 - **Separation of Concerns:** API response models (`PlatformWellData`, `WellData`) are separate from database entities (`Platform`, `Well`)
 - **Flexible JSON Handling:** Uses `JsonExtensionData` to capture additional API properties
 - **Timestamp Compatibility:** Supports both `updatedAt` and `lastUpdate` field names for different API endpoints
 - **High-Precision Coordinates:** Uses `decimal(19,10)` for latitude/longitude to maintain precision
-- **Entity Framework Code First:** Database schema is generated from model classes
+- **Production Ready:** Proper migration strategy for deployment and updates
+- **Database Versioning:** Migrations provide full audit trail of schema changes
